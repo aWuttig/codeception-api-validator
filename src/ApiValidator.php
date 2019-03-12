@@ -15,16 +15,23 @@ namespace Codeception\Module;
  */
 
 use Codeception\Exception\ModuleException;
-use Codeception\Lib\Framework;
-use Codeception\Lib\InnerBrowser;
 use Codeception\Lib\Interfaces\DependsOnModule;
 use Codeception\Module;
 use Codeception\TestInterface;
-use Codeception\Util\JsonArray;
+use ElevenLabs\Api\Decoder\Adapter\SymfonyDecoderAdapter;
 use ElevenLabs\Api\Factory\SwaggerSchemaFactory;
 use ElevenLabs\Api\Schema;
 use ElevenLabs\Api\Validator\MessageValidator;
+use Exception;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Response;
+use JsonSchema\Validator;
 use PHPUnit\Framework\Assert;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
+use Symfony\Component\Serializer\Encoder\ChainDecoder;
+use Symfony\Component\Serializer\Encoder\JsonDecode;
+use Symfony\Component\Serializer\Encoder\XmlEncoder;
 
 /**
  * Class ApiValidator
@@ -33,7 +40,9 @@ use PHPUnit\Framework\Assert;
 class ApiValidator extends Module implements DependsOnModule
 {
 
-    protected $config = [];
+    protected $config = [
+        'schema' => ''
+    ];
 
     protected $dependencyMessage = <<<EOF
 Example configuring REST as backend for ApiValidator module.
@@ -42,6 +51,7 @@ modules:
     enabled:
         - ApiValidator:
             depends: REST
+            schema: '../../web/api/documentation/swagger.yaml'
 --
 EOF;
 
@@ -101,7 +111,138 @@ EOF;
             ])
         );
         $this->swaggerMessageValidator = new MessageValidator($jsonSchemaValidator, $decoder);
-        $this->swaggerSchema = (new SwaggerSchemaFactory())->createSchema('file://' . \codecept_root_dir('../../web/api/documentation/swagger.yaml'));
+        if ($this->config['schema']) {
+            $schema = 'file://' . codecept_root_dir('../../web/api/documentation/swagger.yaml');
+            if (!file_exists($schema)) {
+                throw new Exception("{$schema} not found!");
+            }
+            $this->swaggerSchema = (new SwaggerSchemaFactory())->createSchema($schema);
+        }
     }
 
+    /**
+     * @param string $schema
+     */
+    public function haveOpenAPISchema($schema)
+    {
+        if (!file_exists($schema)) {
+            throw new Exception("{$schema} not found!");
+        }
+        $this->swaggerSchema = (new SwaggerSchemaFactory())->createSchema($schema);
+
+    }
+
+    public function haveSwaggerSchema($schema)
+    {
+        $this->haveOpenAPISchema($schema);
+    }
+
+    /**
+     *
+     */
+    public function seeRequestIsValid()
+    {
+        $request = $this->getPsr7Request();
+        $hasViolations = $this->validateRequestAgainstSwaggerSchema($request);
+        Assert::assertFalse($hasViolations);
+    }
+
+    /**
+     *
+     */
+    public function seeResponseIsValid()
+    {
+        $request = $this->getPsr7Request();
+        $response = $this->getPsr7Response();
+        $hasViolations = $this->validateResponseAgainstSwaggerSchema($request, $response);
+        Assert::assertFalse($hasViolations);
+    }
+
+    /**
+     *
+     */
+    public function seeRequestAndResponseAreValid()
+    {
+        $this->seeRequestIsValid();
+        $this->seeResponseIsValid();
+    }
+
+    /**
+     * @param RequestInterface $request
+     * @return bool
+     */
+    protected function validateRequestAgainstSwaggerSchema(RequestInterface $request)
+    {
+        $uri = parse_url($request->getUri())['path'];
+        $uri = $path = '/' . ltrim($uri, '/');
+
+        $requestDefinition = $this->swaggerSchema->getRequestDefinition(
+            $this->swaggerSchema->findOperationId($request->getMethod(), $uri)
+        );
+
+        $this->swaggerMessageValidator->validateRequest($request, $requestDefinition);
+        if ($this->swaggerMessageValidator->hasViolations()) {
+            codecept_debug($this->swaggerMessageValidator->getViolations());
+        }
+        return $this->swaggerMessageValidator->hasViolations();
+    }
+
+    /**
+     * @param RequestInterface $request
+     * @param ResponseInterface $response
+     * @return bool
+     */
+    protected function validateResponseAgainstSwaggerSchema(RequestInterface $request, ResponseInterface $response)
+    {
+        $uri = parse_url($request->getUri())['path'];
+        $uri = $path = '/' . ltrim($uri, '/');
+
+        $requestDefinition = $this->swaggerSchema->getRequestDefinition(
+            $this->swaggerSchema->findOperationId($request->getMethod(), $uri)
+        );
+
+        $headers = $response->getHeaders();
+        $headers['Content-Type'] = str_replace('; charset=utf-8', '', $headers['Content-Type']);
+        $response = new Response(
+            $response->getStatusCode(),
+            $headers,
+            $response->getBody()->__toString()
+        );
+
+        $this->swaggerMessageValidator->validateResponse($response, $requestDefinition);
+        if ($this->swaggerMessageValidator->hasViolations()) {
+            codecept_debug($this->swaggerMessageValidator->getViolations());
+        }
+        return $this->swaggerMessageValidator->hasViolations();
+    }
+
+    /**
+     * @return Request
+     */
+    protected function getPsr7Request()
+    {
+        $internalRequest = $this->rest->client->getInternalRequest();
+        $request = new Request(
+            $internalRequest->getMethod(),
+            $internalRequest->getUri(),
+            [],
+            $internalRequest->getContent()
+        );
+
+        return $request;
+    }
+
+    /**
+     * @return Response
+     */
+    protected function getPsr7Response()
+    {
+        $internalResponse = $this->rest->client->getInternalResponse();
+        $response = new Response(
+            $internalResponse->getStatus(),
+            $internalResponse->getHeaders(),
+            $internalResponse->getContent()
+        );
+        return $response;
+    }
 }
