@@ -15,6 +15,7 @@ namespace Codeception\Module;
  */
 
 use Codeception\Exception\ModuleException;
+use Codeception\Lib\InnerBrowser;
 use Codeception\Lib\Interfaces\DependsOnModule;
 use Codeception\Module;
 use Codeception\TestInterface;
@@ -50,12 +51,17 @@ Example configuring REST as backend for ApiValidator module.
 modules:
     enabled:
         - ApiValidator:
-            depends: REST
+            depends: [REST, PhpBrowser]
             schema: '../../web/api/documentation/swagger.yaml'
 --
 EOF;
 
     public $isFunctional = false;
+
+    /**
+     * @var InnerBrowser
+     */
+    protected $connectionModule;
 
     /**
      * @var REST
@@ -98,10 +104,17 @@ EOF;
 
     /**
      * @param REST $rest
+     * @param InnerBrowser $connection
+     * @throws Exception
      */
-    public function _inject(REST $rest)
+    public function _inject(REST $rest, InnerBrowser $connection)
     {
         $this->rest = $rest;
+        $this->connectionModule = $connection;
+
+        if ($this->connectionModule instanceof Framework) {
+            $this->isFunctional = true;
+        }
 
         $jsonSchemaValidator = new Validator();
         $decoder = new SymfonyDecoderAdapter(
@@ -112,7 +125,7 @@ EOF;
         );
         $this->swaggerMessageValidator = new MessageValidator($jsonSchemaValidator, $decoder);
         if ($this->config['schema']) {
-            $schema = 'file://' . codecept_root_dir('../../web/api/documentation/swagger.yaml');
+            $schema = 'file://' . codecept_root_dir($this->config['schema']);
             if (!file_exists($schema)) {
                 throw new Exception("{$schema} not found!");
             }
@@ -222,10 +235,12 @@ EOF;
     protected function getPsr7Request()
     {
         $internalRequest = $this->rest->client->getInternalRequest();
+        $headers = $this->connectionModule->headers;
+
         $request = new Request(
             $internalRequest->getMethod(),
             $internalRequest->getUri(),
-            [],
+            $headers,
             $internalRequest->getContent()
         );
 
