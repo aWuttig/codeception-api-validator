@@ -3,7 +3,7 @@
 namespace Codeception\Module;
 
 /*
- * This file is part of the Codeception Yandex Module project
+ * This file is part of the Codeception ApiValidator Module project
  *
  * It is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, either version 2
@@ -19,8 +19,6 @@ use Codeception\Lib\Framework;
 use Codeception\Lib\InnerBrowser;
 use Codeception\Lib\Interfaces\DependsOnModule;
 use Codeception\Module;
-use Codeception\Module\Yandex\StructuredData\StructuredDataClient;
-use Codeception\Module\Yandex\StructuredData\ValidationResponse;
 use Codeception\TestInterface;
 use Codeception\Util\JsonArray;
 use ElevenLabs\Api\Factory\SwaggerSchemaFactory;
