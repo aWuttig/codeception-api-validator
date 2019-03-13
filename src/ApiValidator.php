@@ -156,7 +156,7 @@ EOF;
     public function seeRequestIsValid()
     {
         $request = $this->getPsr7Request();
-        $hasViolations = $this->validateRequestAgainstSwaggerSchema($request);
+        $hasViolations = $this->validateRequestAgainstSchema($request);
         Assert::assertFalse($hasViolations);
     }
 
@@ -167,7 +167,7 @@ EOF;
     {
         $request = $this->getPsr7Request();
         $response = $this->getPsr7Response();
-        $hasViolations = $this->validateResponseAgainstSwaggerSchema($request, $response);
+        $hasViolations = $this->validateResponseAgainstSchema($request, $response);
         Assert::assertFalse($hasViolations);
     }
 
@@ -181,10 +181,10 @@ EOF;
     }
 
     /**
-     * @param RequestInterface $request
+     * @param \Psr\Http\Message\RequestInterface $request
      * @return bool
      */
-    protected function validateRequestAgainstSwaggerSchema(RequestInterface $request)
+    public function validateRequestAgainstSchema(RequestInterface $request)
     {
         $uri = parse_url($request->getUri())['path'];
         $uri = $path = '/' . ltrim($uri, '/');
@@ -201,11 +201,11 @@ EOF;
     }
 
     /**
-     * @param RequestInterface $request
-     * @param ResponseInterface $response
+     * @param \Psr\Http\Message\RequestInterface $request
+     * @param \Psr\Http\Message\ResponseInterface $response
      * @return bool
      */
-    protected function validateResponseAgainstSwaggerSchema(RequestInterface $request, ResponseInterface $response)
+    public function validateResponseAgainstSchema(RequestInterface $request, ResponseInterface $response)
     {
         $uri = parse_url($request->getUri())['path'];
         $uri = $path = '/' . ltrim($uri, '/');
@@ -230,9 +230,9 @@ EOF;
     }
 
     /**
-     * @return Request
+     * @return \Psr\Http\Message\RequestInterface
      */
-    protected function getPsr7Request()
+    public function getPsr7Request()
     {
         $internalRequest = $this->rest->client->getInternalRequest();
         $headers = $this->connectionModule->headers;
@@ -248,9 +248,9 @@ EOF;
     }
 
     /**
-     * @return Response
+     * @return \Psr\Http\Message\ResponseInterface
      */
-    protected function getPsr7Response()
+    public function getPsr7Response()
     {
         $internalResponse = $this->rest->client->getInternalResponse();
         $response = new Response(
