@@ -8,7 +8,7 @@
         }
     ],
     "require": {
-        "codeception/codeception": "^3.1",
+        "codeception/codeception": "^2.3 || ^3.1",
         "eleven-labs/api-validator": "~0.5.4",
         "symfony/serializer": "^3.4"
     },
