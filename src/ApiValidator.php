@@ -30,6 +30,8 @@ use JsonSchema\Validator;
 use PHPUnit\Framework\Assert;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
+use RuntimeException;
+use Symfony\Component\BrowserKit\AbstractBrowser;
 use Symfony\Component\Serializer\Encoder\ChainDecoder;
 use Symfony\Component\Serializer\Encoder\JsonDecode;
 use Symfony\Component\Serializer\Encoder\XmlEncoder;
@@ -77,6 +79,21 @@ EOF;
      * @var Schema
      */
     protected $swaggerSchema;
+
+    /**
+     * @var array
+     */
+    private $params;
+
+    /**
+     * @var string
+     */
+    private $response;
+
+    /**
+     * @var AbstractBrowser
+     */
+    private $client;
 
     /**
      * @param TestInterface $test
@@ -135,16 +152,21 @@ EOF;
 
     /**
      * @param string $schema
+     * @throws \RuntimeException
      */
     public function haveOpenAPISchema($schema)
     {
         if (!file_exists($schema)) {
-            throw new Exception("{$schema} not found!");
+            throw new RuntimeException("{$schema} not found!");
         }
         $this->swaggerSchema = (new SwaggerSchemaFactory())->createSchema($schema);
 
     }
 
+    /**
+     * @param $schema
+     * @throws \RuntimeException
+     */
     public function haveSwaggerSchema($schema)
     {
         $this->haveOpenAPISchema($schema);
@@ -231,33 +253,43 @@ EOF;
 
     /**
      * @return \Psr\Http\Message\RequestInterface
+     *
+     * @throws \RuntimeException
      */
     public function getPsr7Request()
     {
         $internalRequest = $this->rest->client->getInternalRequest();
         $headers = $this->connectionModule->headers;
 
-        $request = new Request(
+        if (!$internalRequest) {
+            throw new RuntimeException('internal request not defined.');
+        }
+
+        return new Request(
             $internalRequest->getMethod(),
             $internalRequest->getUri(),
             $headers,
             $internalRequest->getContent()
         );
-
-        return $request;
     }
 
     /**
      * @return \Psr\Http\Message\ResponseInterface
+     *
+     * @throws \RuntimeException
      */
     public function getPsr7Response()
     {
         $internalResponse = $this->rest->client->getInternalResponse();
-        $response = new Response(
+
+        if (!$internalResponse) {
+            throw new RuntimeException('internal request not defined.');
+        }
+
+        return new Response(
             $internalResponse->getStatus(),
             $internalResponse->getHeaders(),
             $internalResponse->getContent()
         );
-        return $response;
     }
 }
