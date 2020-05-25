@@ -8,7 +8,9 @@
         }
     ],
     "require": {
-        "codeception/codeception": "^2.3 || ^3.1 || ^4.0",
+        "codeception/codeception": "^4.0",
+        "codeception/module-phpbrowser": "^1.0.0",
+        "codeception/module-rest": "^1.0.0",
         "eleven-labs/api-validator": "~0.5.4",
         "symfony/serializer": "^3.4"
     },
