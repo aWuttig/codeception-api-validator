@@ -14,12 +14,12 @@ namespace Codeception\Module;
  *
  */
 
-use Codeception\Exception\ModuleException;
 use Codeception\Lib\InnerBrowser;
 use Codeception\Lib\Interfaces\DependsOnModule;
 use Codeception\Module;
 use Codeception\TestInterface;
 use ElevenLabs\Api\Decoder\Adapter\SymfonyDecoderAdapter;
+use ElevenLabs\Api\Decoder\DecoderInterface;
 use ElevenLabs\Api\Factory\SwaggerSchemaFactory;
 use ElevenLabs\Api\Schema;
 use ElevenLabs\Api\Validator\MessageValidator;
@@ -96,22 +96,24 @@ EOF;
     private $client;
 
     /**
+     * @var Validator
+     */
+    private $jsonSchemaValidator;
+
+    /**
+     * @var DecoderInterface
+     */
+    private $decoder;
+
+    /**
      * @param TestInterface $test
      */
     public function _before(TestInterface $test)
     {
         $this->client = &$this->connectionModule->client;
         $this->resetVariables();
-        
-        $jsonSchemaValidator = new Validator();
-        $decoder = new SymfonyDecoderAdapter(
-            new ChainDecoder([
-                new JsonDecode(),
-                new XmlEncoder()
-            ])
-        );
 
-        $this->swaggerMessageValidator = new MessageValidator($jsonSchemaValidator, $decoder);
+        $this->swaggerMessageValidator = new MessageValidator($this->jsonSchemaValidator, $this->decoder);
     }
 
     protected function resetVariables()
@@ -142,6 +144,14 @@ EOF;
         if ($this->connectionModule instanceof Framework) {
             $this->isFunctional = true;
         }
+
+        $this->jsonSchemaValidator = new Validator();
+        $this->decoder = new SymfonyDecoderAdapter(
+            new ChainDecoder([
+                new JsonDecode(),
+                new XmlEncoder()
+            ])
+        );
 
         if ($this->config['schema']) {
             $schema = 'file://' . codecept_root_dir($this->config['schema']);
