@@ -102,6 +102,16 @@ EOF;
     {
         $this->client = &$this->connectionModule->client;
         $this->resetVariables();
+        
+        $jsonSchemaValidator = new Validator();
+        $decoder = new SymfonyDecoderAdapter(
+            new ChainDecoder([
+                new JsonDecode(),
+                new XmlEncoder()
+            ])
+        );
+
+        $this->swaggerMessageValidator = new MessageValidator($jsonSchemaValidator, $decoder);
     }
 
     protected function resetVariables()
@@ -133,14 +143,6 @@ EOF;
             $this->isFunctional = true;
         }
 
-        $jsonSchemaValidator = new Validator();
-        $decoder = new SymfonyDecoderAdapter(
-            new ChainDecoder([
-                new JsonDecode(),
-                new XmlEncoder()
-            ])
-        );
-        $this->swaggerMessageValidator = new MessageValidator($jsonSchemaValidator, $decoder);
         if ($this->config['schema']) {
             $schema = 'file://' . codecept_root_dir($this->config['schema']);
             if (!file_exists($schema)) {
