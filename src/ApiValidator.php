@@ -111,7 +111,7 @@ EOF;
      */
     public function _before(TestInterface $test): void
     {
-        $this->client = &$this->connectionModule->client;
+        $this->client = $this->connectionModule->client;
         $this->resetVariables();
 
         $this->swaggerMessageValidator = new MessageValidator($this->jsonSchemaValidator, $this->decoder);
