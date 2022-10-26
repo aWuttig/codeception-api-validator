@@ -14,6 +14,7 @@ namespace Awuttig\Codeception;
  *
  */
 
+use Codeception\Lib\Framework;
 use Codeception\Lib\InnerBrowser;
 use Codeception\Lib\Interfaces\DependsOnModule;
 use Codeception\Module;
@@ -40,11 +41,11 @@ use Symfony\Component\Serializer\Encoder\XmlEncoder;
 class ApiValidator extends Module implements DependsOnModule
 {
 
-    protected $config = [
+    protected array $config = [
         'schema' => ''
     ];
 
-    protected $dependencyMessage = <<<EOF
+    protected string $dependencyMessage = <<<EOF
 Example configuring REST as backend for ApiValidator module.
 --
 modules:
@@ -55,57 +56,57 @@ modules:
 --
 EOF;
 
-    public $isFunctional = false;
+    public bool $isFunctional = false;
 
     /**
      * @var InnerBrowser
      */
-    protected $connectionModule;
+    protected InnerBrowser $connectionModule;
 
     /**
      * @var REST
      */
-    public $rest;
+    public REST $rest;
 
     /**
      * @var MessageValidator
      */
-    protected $swaggerMessageValidator;
+    protected MessageValidator $swaggerMessageValidator;
 
     /**
      * @var Schema
      */
-    protected $swaggerSchema;
+    protected Schema $swaggerSchema;
 
     /**
      * @var array
      */
-    private $params;
+    private array $params;
 
     /**
      * @var string
      */
-    private $response;
+    private string $response;
 
     /**
      * @var AbstractBrowser
      */
-    private $client;
+    private AbstractBrowser $client;
 
     /**
      * @var Validator
      */
-    private $jsonSchemaValidator;
+    private Validator $jsonSchemaValidator;
 
     /**
      * @var DecoderInterface
      */
-    private $decoder;
+    private DecoderInterface $decoder;
 
     /**
      * @param TestInterface $test
      */
-    public function _before(TestInterface $test)
+    public function _before(TestInterface $test): void
     {
         $this->client = $this->connectionModule->client;
         $this->resetVariables();
@@ -113,7 +114,7 @@ EOF;
         $this->swaggerMessageValidator = new MessageValidator($this->jsonSchemaValidator, $this->decoder);
     }
 
-    protected function resetVariables()
+    protected function resetVariables(): void
     {
         $this->params = [];
         $this->response = '';
@@ -123,7 +124,7 @@ EOF;
     /**
      * @return array
      */
-    public function _depends()
+    public function _depends(): array
     {
         return [REST::class => $this->dependencyMessage];
     }
@@ -133,7 +134,7 @@ EOF;
      * @param InnerBrowser $connection
      * @throws Exception
      */
-    public function _inject(REST $rest, InnerBrowser $connection)
+    public function _inject(REST $rest, InnerBrowser $connection): void
     {
         $this->rest = $rest;
         $this->connectionModule = $connection;
@@ -153,7 +154,7 @@ EOF;
         if ($this->config['schema']) {
             $schema = 'file://' . codecept_root_dir($this->config['schema']);
             if (!file_exists($schema)) {
-                throw new Exception("{$schema} not found!");
+                throw new Exception("$schema not found!");
             }
             $this->swaggerSchema = (new SwaggerSchemaFactory())->createSchema($schema);
         }
@@ -161,22 +162,22 @@ EOF;
 
     /**
      * @param string $schema
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
-    public function haveOpenAPISchema($schema)
+    public function haveOpenAPISchema(string $schema): void
     {
         if (!file_exists($schema)) {
-            throw new RuntimeException("{$schema} not found!");
+            throw new RuntimeException("$schema not found!");
         }
         $this->swaggerSchema = (new SwaggerSchemaFactory())->createSchema($schema);
 
     }
 
     /**
-     * @param $schema
-     * @throws \RuntimeException
+     * @param string $schema
+     * @throws RuntimeException
      */
-    public function haveSwaggerSchema($schema)
+    public function haveSwaggerSchema(string $schema): void
     {
         $this->haveOpenAPISchema($schema);
     }
@@ -184,7 +185,7 @@ EOF;
     /**
      *
      */
-    public function seeRequestIsValid()
+    public function seeRequestIsValid(): void
     {
         $request = $this->getPsr7Request();
         $hasViolations = $this->validateRequestAgainstSchema($request);
@@ -194,7 +195,7 @@ EOF;
     /**
      *
      */
-    public function seeResponseIsValid()
+    public function seeResponseIsValid(): void
     {
         $request = $this->getPsr7Request();
         $response = $this->getPsr7Response();
@@ -205,20 +206,20 @@ EOF;
     /**
      *
      */
-    public function seeRequestAndResponseAreValid()
+    public function seeRequestAndResponseAreValid(): void
     {
         $this->seeRequestIsValid();
         $this->seeResponseIsValid();
     }
 
     /**
-     * @param \Psr\Http\Message\RequestInterface $request
+     * @param RequestInterface $request
      * @return bool
      */
-    public function validateRequestAgainstSchema(RequestInterface $request)
+    public function validateRequestAgainstSchema(RequestInterface $request): bool
     {
         $uri = parse_url($request->getUri())['path'];
-        $uri = $path = '/' . ltrim($uri, '/');
+        $uri = '/' . ltrim($uri, '/');
 
         $requestDefinition = $this->swaggerSchema->getRequestDefinition(
             $this->swaggerSchema->findOperationId($request->getMethod(), $uri)
@@ -232,14 +233,14 @@ EOF;
     }
 
     /**
-     * @param \Psr\Http\Message\RequestInterface $request
-     * @param \Psr\Http\Message\ResponseInterface $response
+     * @param RequestInterface $request
+     * @param ResponseInterface $response
      * @return bool
      */
-    public function validateResponseAgainstSchema(RequestInterface $request, ResponseInterface $response)
+    public function validateResponseAgainstSchema(RequestInterface $request, ResponseInterface $response): bool
     {
         $uri = parse_url($request->getUri())['path'];
-        $uri = $path = '/' . ltrim($uri, '/');
+        $uri = '/' . ltrim($uri, '/');
 
         $requestDefinition = $this->swaggerSchema->getRequestDefinition(
             $this->swaggerSchema->findOperationId($request->getMethod(), $uri)
@@ -261,11 +262,11 @@ EOF;
     }
 
     /**
-     * @return \Psr\Http\Message\RequestInterface
+     * @return RequestInterface|Request
      *
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
-    public function getPsr7Request()
+    public function getPsr7Request(): RequestInterface|Request
     {
         $internalRequest = $this->rest->client->getInternalRequest();
         $headers = $this->connectionModule->headers;
@@ -283,11 +284,11 @@ EOF;
     }
 
     /**
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return Response|ResponseInterface
      *
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
-    public function getPsr7Response()
+    public function getPsr7Response(): Response|ResponseInterface
     {
         $internalResponse = $this->rest->client->getInternalResponse();
 
@@ -296,7 +297,7 @@ EOF;
         }
 
         return new Response(
-            $internalResponse->getStatus(),
+            $internalResponse->getStatusCode(),
             $internalResponse->getHeaders(),
             $internalResponse->getContent()
         );
