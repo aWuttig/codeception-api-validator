@@ -1,6 +1,6 @@
 <?php
 
-namespace Codeception\Module;
+namespace Awuttig\Codeception;
 
 /*
  * This file is part of the Codeception ApiValidator Module project
@@ -17,6 +17,7 @@ namespace Codeception\Module;
 use Codeception\Lib\InnerBrowser;
 use Codeception\Lib\Interfaces\DependsOnModule;
 use Codeception\Module;
+use Codeception\Module\REST;
 use Codeception\TestInterface;
 use ElevenLabs\Api\Decoder\Adapter\SymfonyDecoderAdapter;
 use ElevenLabs\Api\Decoder\DecoderInterface;
@@ -36,10 +37,6 @@ use Symfony\Component\Serializer\Encoder\ChainDecoder;
 use Symfony\Component\Serializer\Encoder\JsonDecode;
 use Symfony\Component\Serializer\Encoder\XmlEncoder;
 
-/**
- * Class ApiValidator
- * @package Codeception\Module
- */
 class ApiValidator extends Module implements DependsOnModule
 {
 
@@ -52,7 +49,7 @@ Example configuring REST as backend for ApiValidator module.
 --
 modules:
     enabled:
-        - ApiValidator:
+        - Awuttig\Codeception\ApiValidator:
             depends: [REST, PhpBrowser]
             schema: '../../web/api/documentation/swagger.yaml'
 --
@@ -110,7 +107,7 @@ EOF;
      */
     public function _before(TestInterface $test)
     {
-        $this->client = &$this->connectionModule->client;
+        $this->client = $this->connectionModule->client;
         $this->resetVariables();
 
         $this->swaggerMessageValidator = new MessageValidator($this->jsonSchemaValidator, $this->decoder);
